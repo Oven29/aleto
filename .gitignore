@@ -1,0 +1,9 @@
+.vscode/
+build/
+bin/
+tmp/
+libs/
+
+*.db
+*.sqlite
+*.zip
