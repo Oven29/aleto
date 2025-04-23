@@ -1,8 +1,7 @@
 .vscode/
 build/
-bin/
 tmp/
-libs/
+libs/wxWidgets-3.2.7
 
 *.db
 *.sqlite
