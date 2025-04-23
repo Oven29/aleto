@@ -1,3 +1,5 @@
-#include "App.h"
+#include <wx/wx.h>
 
-wxIMPLEMENT_APP(App::App);
+#include "App.hpp"
+
+wxIMPLEMENT_APP(MyApp);

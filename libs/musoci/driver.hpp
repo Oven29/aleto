@@ -18,6 +18,7 @@ private:
           const std::vector<std::string> &args);
 
 public:
+  Base() = default;
   virtual ~Base() = default;
 
   virtual std::unordered_map<std::string, std::string> getDefaultParams() = 0;

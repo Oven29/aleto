@@ -6,13 +6,13 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCES
     src/main.cpp
-    src/App.cpp
-    src/MainFrame.cpp
+    src/core/utils.cpp
 )
 
 set(HEADERS
-    src/App.h
-    src/MainFrame.h
+    src/App.hpp
+    src/MainFrame.hpp
+    src/core/utils.h
 )
 
 add_subdirectory(libs/wxWidgets-3.2.7)
@@ -20,9 +20,12 @@ add_subdirectory(libs/musoci)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} ${HEADERS})
 
-# target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -Wall -Wextra -Werror -Wpedantic)
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -std=c++17)
 target_link_libraries(${CMAKE_PROJECT_NAME} wx::net wx::core wx::base musoci)
+
+if(ENABLE_DEBUG)
+    target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -g)
+endif()
 
 add_custom_command(
     TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
