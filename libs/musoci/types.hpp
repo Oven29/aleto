@@ -116,9 +116,11 @@ public:
   std::vector<TableSchema> items;
 
   json to_json() const override {
+    json j;
     json arr = json::array();
     for (const auto &item : items)
       arr.push_back(item.to_json());
+    j["items"] = arr;
     return arr;
   }
 
