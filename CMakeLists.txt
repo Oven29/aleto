@@ -15,7 +15,7 @@ set(HEADERS
     src/core/utils.h
 )
 
-add_subdirectory(libs/wxWidgets-3.2.7)
+add_subdirectory(libs/wxWidgets-3.2.8)
 add_subdirectory(libs/musoci)
 
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} ${HEADERS})

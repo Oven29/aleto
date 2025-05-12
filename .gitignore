@@ -2,6 +2,8 @@
 build/
 tmp/
 libs/wxWidgets-3.2.7
+libs/wxWidgets-3.2.8
+libs/bin
 
 *.db
 *.sqlite
