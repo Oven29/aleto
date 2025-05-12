@@ -10,8 +10,6 @@
 namespace {
 
 std::unique_ptr<musoci::base::Base> getDb() {
-  return std::make_unique<musoci::sqlite::Sqlite>(
-      "/home/ivan/cpp/aleto/test.db");
 }
 
 } // namespace
