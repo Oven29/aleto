@@ -2,12 +2,12 @@
 
 #include <wx/wx.h>
 
-#include "MainFrame.hpp"
+#include "ui/FormFrame.hpp"
 
 class MyApp : public wxApp {
 public:
   virtual bool OnInit() {
-    MainFrame *frame = new MainFrame();
+    FormFrame *frame = new FormFrame();
     frame->Show();
     return true;
   }
