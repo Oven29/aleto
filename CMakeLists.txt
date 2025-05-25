@@ -6,13 +6,12 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCES
     src/main.cpp
-    src/core/utils.cpp
 )
 
 set(HEADERS
     src/App.hpp
-    src/MainFrame.hpp
-    src/core/utils.h
+    src/ui/MainFrame.hpp
+    src/ui/MainFrame.hpp
 )
 
 add_subdirectory(libs/wxWidgets-3.2.8)
