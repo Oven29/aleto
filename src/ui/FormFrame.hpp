@@ -3,6 +3,8 @@
 #include <wx/grid.h>
 #include <wx/wx.h>
 
+#include "MainFrame.hpp"
+
 namespace {
 
 void addInputWithLabel(wxPanel* panel, wxTextCtrl* input, const wxString& textLabel) {
@@ -14,6 +16,12 @@ void addInputWithLabel(wxPanel* panel, wxTextCtrl* input, const wxString& textLa
 };
 
 }  // namespace
+
+enum class ConnectType {
+    SQLITE,
+    POSTGRESQL,
+    MYSQL
+};
 
 class FormFrame : public wxFrame {
  public:
@@ -28,7 +36,7 @@ class FormFrame : public wxFrame {
         auto* mysqlRadio = new wxRadioButton(panel, wxID_ANY, wxT("MySQL"));
         sqliteRadio->Bind(wxEVT_RADIOBUTTON, &FormFrame::onSqlite, this);
         postgresqlRadio->Bind(wxEVT_RADIOBUTTON, &FormFrame::onPostgres, this);
-        mysqlRadio->Bind(wxEVT_RADIOBUTTON, &FormFrame::onPostgres, this);
+        mysqlRadio->Bind(wxEVT_RADIOBUTTON, &FormFrame::onMysql, this);
         typeConnectSizer->Add(sqliteRadio, 0, wxRIGHT, 8);
         typeConnectSizer->Add(postgresqlRadio, 0, wxRIGHT, 8);
         typeConnectSizer->Add(mysqlRadio, 0, wxRIGHT, 8);
@@ -36,12 +44,13 @@ class FormFrame : public wxFrame {
         mainSizer->Add(typeConnectSizer, 0, wxALL, 10);
         panel->SetSizer(mainSizer);
         sqliteRadio->SetValue(true);
+        connectType = ConnectType::SQLITE;
 
         wxBoxSizer* pathSizer = new wxBoxSizer(wxHORIZONTAL);
         pathPanel = new wxPanel(panel);
         auto* pathLabel = new wxStaticText(pathPanel, wxID_ANY, wxT("Путь к базе данных: "));
         auto* pathButton = new wxButton(pathPanel, wxID_ANY, wxT("Обзор"));
-        fileDialog = new wxFileDialog(this, "Choose a file", "", "", "Database files (*.db)|*.db;Sqlite files (*.sqlite)|*.sqlite", wxFD_OPEN);
+        fileDialog = new wxFileDialog(this, "Choose a file", "", "", "Database files (*.db)|*.db|Sqlite files (*.sqlite)|*.sqlite", wxFD_OPEN);
         selectPath = new wxStaticText(panel, wxID_ANY, wxT(""));
         pathButton->Bind(wxEVT_BUTTON, &FormFrame::onSelectPath, this);
         pathSizer->Add(pathLabel, 0, wxCENTER, 8);
@@ -81,7 +90,7 @@ class FormFrame : public wxFrame {
         namePanel->Enable(false);
 
         wxButton* submitButton = new wxButton(panel, wxID_ANY, wxT("Подключиться"));
-        submitButton->Bind(wxEVT_BUTTON, &FormFrame::OnSubmit, this);
+        submitButton->Bind(wxEVT_BUTTON, &FormFrame::onSubmit, this);
         mainSizer->Add(submitButton, 0, wxCENTER, 10);
     };
 
@@ -89,6 +98,8 @@ class FormFrame : public wxFrame {
     wxPanel* pathPanel;
     wxFileDialog* fileDialog;
     wxStaticText* selectPath;
+
+    ConnectType connectType;
 
     wxPanel* hostPanel;
     wxPanel* portPanel;
@@ -102,7 +113,7 @@ class FormFrame : public wxFrame {
     wxTextCtrl* passwordInput;
     wxTextCtrl* nameInput;
 
-    void onPostgres(wxCommandEvent&) {
+    void disablePath() {
         pathPanel->Enable(false);
         hostPanel->Enable(true);
         portPanel->Enable(true);
@@ -112,6 +123,16 @@ class FormFrame : public wxFrame {
         selectPath->SetLabel(wxT(""));
     }
 
+    void onPostgres(wxCommandEvent&) {
+        disablePath();
+        connectType = ConnectType::POSTGRESQL;
+    }
+
+    void onMysql(wxCommandEvent&) {
+        disablePath();
+        connectType = ConnectType::MYSQL;
+    }
+
     void onSqlite(wxCommandEvent&) {
         pathPanel->Enable(true);
         hostPanel->Enable(false);
@@ -119,6 +140,7 @@ class FormFrame : public wxFrame {
         userPanel->Enable(false);
         passwordPanel->Enable(false);
         namePanel->Enable(false);
+        connectType = ConnectType::SQLITE;
     }
 
     void onSelectPath(wxCommandEvent&) {
@@ -127,6 +149,39 @@ class FormFrame : public wxFrame {
         }
     }
 
-    void OnSubmit(wxCommandEvent&) {
+    void connect(std::unique_ptr<musoci::base::Base> db) {
+        MainFrame* mainFrame = new MainFrame(std::move(db));
+        mainFrame->Show();
+        this->Destroy();
+    }
+
+    void onSubmit(wxCommandEvent&) {
+        if (connectType == ConnectType::SQLITE) {
+            wxString path = selectPath->GetLabel();
+            if (path.empty()) {
+                wxMessageBox(wxT("Выберите базу данных"), wxT("Подключение"), wxOK | wxICON_WARNING);
+            } else {
+                auto db = std::make_unique<musoci::sqlite::Sqlite>(path.ToStdString());
+                connect(std::move(db));
+            }
+        } else {
+            wxString host = hostInput->GetValue();
+            wxString port = portInput->GetValue();
+            wxString user = userInput->GetValue();
+            wxString password = passwordInput->GetValue();
+            wxString name = nameInput->GetValue();
+            if (host.empty() || port.empty() || user.empty() || password.empty() || name.empty()) {
+                wxMessageBox(wxT("Заполните все поля"), wxT("Подключение"), wxOK | wxICON_WARNING);
+            } else if (connectType == ConnectType::POSTGRESQL) {
+                auto db = std::make_unique<musoci::postgresql::Postgresql>(host.ToStdString(), std::stoi(port.ToStdString()), user.ToStdString(),
+                                                                           password.ToStdString(), name.ToStdString());
+
+                connect(std::move(db));
+            } else {
+                auto db = std::make_unique<musoci::mysql::Mysql>(host.ToStdString(), std::stoi(port.ToStdString()), user.ToStdString(),
+                                                                 password.ToStdString(), name.ToStdString());
+                connect(std::move(db));
+            }
+        }
     }
 };
