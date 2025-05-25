@@ -1,13 +1,13 @@
 #include <array>
 #include <stdexcept>
 
-#include "driver.hpp"
 #include <stdexcept>
 #include <string>
+#include "driver.hpp"
 
 #if defined(_WIN32)
-#include <algorithm>
 #include <windows.h>
+#include <algorithm>
 #elif defined(__APPLE__)
 #include <limits.h>
 #include <mach-o/dyld.h>
@@ -18,148 +18,145 @@
 
 namespace {
 
-const char *SQLDB_DRIVER_RELATIVE_PATH = "bin/sqldb-driver";
+const char* SQLDB_DRIVER_RELATIVE_PATH = "bin/sqldb-driver";
 
-std::string escapeAndWrap(const std::string &input) {
-  std::string result = "\""; // начинаем с кавычки
+std::string escapeAndWrap(const std::string& input) {
+    std::string result = "\"";  // начинаем с кавычки
 
-  for (char ch : input) {
-    if (ch == '"') {
-      result += "\\\""; // экранируем кавычку
-    } else {
-      result += ch; // остальные символы добавляем как есть
+    for (char ch : input) {
+        if (ch == '"') {
+            result += "\\\"";  // экранируем кавычку
+        } else {
+            result += ch;  // остальные символы добавляем как есть
+        }
     }
-  }
 
-  result += "\""; // заканчиваем кавычкой
-  return result;
+    result += "\"";  // заканчиваем кавычкой
+    return result;
 };
 
-std::string getExecutablePath(const std::string &relative = "") {
-  char path[PATH_MAX];
+std::string getExecutablePath(const std::string& relative = "") {
+    char path[PATH_MAX];
 
 #if defined(_WIN32)
-  if (GetModuleFileNameA(NULL, path, MAX_PATH) == 0) {
-    throw std::runtime_error("Failed to get executable path");
-  }
-  std::string fullPath(path);
-  std::replace(fullPath.begin(), fullPath.end(), '\\', '/'); // нормализуем
+    if (GetModuleFileNameA(NULL, path, MAX_PATH) == 0) {
+        throw std::runtime_error("Failed to get executable path");
+    }
+    std::string fullPath(path);
+    std::replace(fullPath.begin(), fullPath.end(), '\\', '/');  // нормализуем
 #elif defined(__APPLE__)
-  uint32_t size = sizeof(path);
-  if (_NSGetExecutablePath(path, &size) != 0) {
-    throw std::runtime_error("Buffer too small for executable path");
-  }
-  std::string fullPath(path);
+    uint32_t size = sizeof(path);
+    if (_NSGetExecutablePath(path, &size) != 0) {
+        throw std::runtime_error("Buffer too small for executable path");
+    }
+    std::string fullPath(path);
 #else
-  ssize_t count = readlink("/proc/self/exe", path, sizeof(path) - 1);
-  if (count == -1) {
-    throw std::runtime_error("Failed to read /proc/self/exe");
-  }
-  path[count] = '\0';
-  std::string fullPath(path);
+    ssize_t count = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    if (count == -1) {
+        throw std::runtime_error("Failed to read /proc/self/exe");
+    }
+    path[count] = '\0';
+    std::string fullPath(path);
 #endif
 
-  std::string dir = fullPath.substr(0, fullPath.find_last_of('/'));
+    std::string dir = fullPath.substr(0, fullPath.find_last_of('/'));
 
-  if (relative.empty())
-    return dir;
-  else
-    return dir + "/" + relative;
+    if (relative.empty())
+        return dir;
+    else
+        return dir + "/" + relative;
 }
 
 std::filesystem::path getDriverPath() {
-  return getExecutablePath(SQLDB_DRIVER_RELATIVE_PATH);
+    return getExecutablePath(SQLDB_DRIVER_RELATIVE_PATH);
 };
 
-std::string execWithOutput(const std::string &cmd) {
-  std::array<char, 128> buffer;
-  std::string result;
+std::string execWithOutput(const std::string& cmd) {
+    std::array<char, 128> buffer;
+    std::string result;
 
-  // Открываем pipe на чтение
-  using FileCloser = int (*)(FILE *);
-  std::unique_ptr<FILE, FileCloser> pipe(popen(cmd.c_str(), "r"), pclose);
-  if (!pipe) {
-    throw std::runtime_error("popen() failed!");
-  }
+    // Открываем pipe на чтение
+    using FileCloser = int (*)(FILE*);
+    std::unique_ptr<FILE, FileCloser> pipe(popen(cmd.c_str(), "r"), pclose);
+    if (!pipe) {
+        throw std::runtime_error("popen() failed!");
+    }
 
-  // Считываем вывод
-  while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-    result += buffer.data();
-  }
+    // Считываем вывод
+    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+        result += buffer.data();
+    }
 
-  return result;
+    return result;
 };
 
-} // namespace
+}  // namespace
 
 namespace musoci::base {
 
-types::IDataPtr
-Base::execute(const std::string &command,
-              const std::unordered_map<std::string, std::string> &params,
-              const std::vector<std::string> &args) {
-  std::unordered_map<std::string, std::string> namedArgs =
-      this->getDefaultParams();
-  for (const auto &[key, value] : params) {
-    namedArgs[key] = value;
-  }
+types::IDataPtr Base::execute(const std::string& command, const std::unordered_map<std::string, std::string>& params,
+                              const std::vector<std::string>& args) {
+    std::unordered_map<std::string, std::string> namedArgs = this->getDefaultParams();
+    for (const auto& [key, value] : params) {
+        namedArgs[key] = value;
+    }
 
-  std::ostringstream cmd;
-  cmd << "\"" << getDriverPath() << "\"";
+    std::ostringstream cmd;
+    cmd << "\"" << getDriverPath() << "\"";
 
-  for (const auto &[key, value] : namedArgs) {
-    cmd << " --" << key << "=" << escapeAndWrap(value);
-  }
+    for (const auto& [key, value] : namedArgs) {
+        cmd << " --" << key << "=" << escapeAndWrap(value);
+    }
 
-  cmd << " " << command;
-  for (const auto &arg : args) {
-    cmd << " " << escapeAndWrap(arg);
-  }
+    cmd << " " << command;
+    for (const auto& arg : args) {
+        cmd << " " << escapeAndWrap(arg);
+    }
 
-  std::string resp = execWithOutput(cmd.str().c_str());
-  types::Answer res = types::Answer::from_json(json::parse(resp));
-  if (!res.ok) {
-    throw std::runtime_error(res.error_message.value());
-  }
-  return res.data;
+    std::string resp = execWithOutput(cmd.str().c_str());
+    types::Answer res = types::Answer::from_json(json::parse(resp));
+    if (!res.ok) {
+        throw std::runtime_error(res.error_message.value());
+    }
+    return res.data;
 };
 
-types::IDataPtr Base::connect() { return this->execute("connect", {}, {}); };
-
-types::IDataPtr Base::get(const std::string &tablename, int page) {
-  std::vector args = {tablename, std::to_string(page)};
-  return this->execute("get", {}, args);
+std::shared_ptr<types::SchemaListData> Base::connect() {
+    return std::dynamic_pointer_cast<types::SchemaListData>(this->execute("connect", {}, {}));
 };
 
-types::IDataPtr Base::createTable(const types::TableSchema &data) {
-  std::vector args = {data.to_json().dump()};
-  return this->execute("create_table", {}, args);
+std::shared_ptr<types::TableData> Base::get(const std::string& tablename, int page) {
+    std::vector args = {tablename, std::to_string(page)};
+    return std::dynamic_pointer_cast<types::TableData>(this->execute("get", {}, args));
 };
 
-types::IDataPtr Base::dropTable(const std::string &tablename) {
-  std::vector args = {tablename};
-  return this->execute("drop_table", {}, args);
+std::shared_ptr<types::TableSchema> Base::createTable(const types::TableSchema& data) {
+    std::vector args = {data.to_json().dump()};
+    return std::dynamic_pointer_cast<types::TableSchema>(this->execute("create_table", {}, args));
 };
 
-types::IDataPtr Base::alterTable(const types::TableSchema &data) {
-  std::vector args = {data.to_json().dump()};
-  return this->execute("alter_table", {}, args);
+std::shared_ptr<types::TableSchema> Base::dropTable(const std::string& tablename) {
+    std::vector args = {tablename};
+    return std::dynamic_pointer_cast<types::TableSchema>(this->execute("drop_table", {}, args));
 };
 
-types::IDataPtr
-Base::addRow(const std::string &tablename, const std::vector<std::string> &data,
-             const std::unordered_map<std::string, std::string> &namedData) {
-  std::vector args = {tablename};
-  for (const auto &item : data) {
-    args.push_back(item);
-  }
-  return this->execute("add_row", namedData, args);
+std::shared_ptr<types::TableSchema> Base::alterTable(const types::TableSchema& data) {
+    std::vector args = {data.to_json().dump()};
+    return std::dynamic_pointer_cast<types::TableSchema>(this->execute("alter_table", {}, args));
 };
 
-types::IDataPtr Base::addColumn(const std::string &tablename,
-                                const types::Column &data) {
-  std::vector args = {tablename, data.to_json().dump()};
-  return this->execute("add_column", {}, args);
+std::shared_ptr<types::TableSchema> Base::addRow(const std::string& tablename, const std::vector<std::string>& data,
+                                                 const std::unordered_map<std::string, std::string>& namedData) {
+    std::vector args = {tablename};
+    for (const auto& item : data) {
+        args.push_back(item);
+    }
+    return std::dynamic_pointer_cast<types::TableSchema>(this->execute("add_row", namedData, args));
 };
 
-} // namespace musoci::base
+std::shared_ptr<types::TableSchema> Base::addColumn(const std::string& tablename, const types::Column& data) {
+    std::vector args = {tablename, data.to_json().dump()};
+    return std::dynamic_pointer_cast<types::TableSchema>(this->execute("add_column", {}, args));
+};
+
+}  // namespace musoci::base
