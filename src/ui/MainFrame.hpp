@@ -7,11 +7,12 @@
 #include <vector>
 
 #include "../../libs/musoci/driver.hpp"
+#include "../core/config.hpp"
 
 class MainFrame : public wxFrame {
  public:
     MainFrame(std::unique_ptr<musoci::base::Base> _db)
-        : wxFrame(nullptr, wxID_ANY, wxT("aleto"), wxDefaultPosition, wxSize(1280, 720), wxDEFAULT_FRAME_STYLE & ~(wxRESIZE_BORDER | wxMAXIMIZE_BOX)),
+        : wxFrame(nullptr, wxID_ANY, wxT("aleto"), wxDefaultPosition, wxSize(config::WIDTH, config::HEIGHT), wxDEFAULT_FRAME_STYLE & ~(wxRESIZE_BORDER | wxMAXIMIZE_BOX)),
           db(std::move(_db)) {
         std::shared_ptr<types::SchemaListData> schemas{};
         try {
@@ -125,9 +126,7 @@ class MainFrame : public wxFrame {
         event.Skip();
     }
 
-    void refreshData(wxCommandEvent&) {
-        loadPage(currentTable, currentPage);
-    }
+    void refreshData(wxCommandEvent&) { loadPage(currentTable, currentPage); }
 
     void loadPage(std::string tableName, int page = 1) {
         if (page <= 0 || page > lastPages[tableName]) {
@@ -136,8 +135,8 @@ class MainFrame : public wxFrame {
 
         std::shared_ptr<types::TableData> data{};
         try {
-            data = db->get(tableName, page);
-            if (data->data.size() < 100 && page < lastPages[tableName]) {
+            data = db->get(tableName, page, config::ROWS_ON_PAGE);
+            if (data->data.size() < config::ROWS_ON_PAGE && page < lastPages[tableName]) {
                 lastPages[tableName] = page;
             }
             if (data->data.size() == 0) {

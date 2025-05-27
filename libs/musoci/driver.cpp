@@ -126,9 +126,9 @@ std::shared_ptr<types::SchemaListData> Base::connect() {
     return std::dynamic_pointer_cast<types::SchemaListData>(this->execute("connect", {}, {}));
 };
 
-std::shared_ptr<types::TableData> Base::get(const std::string& tablename, int page) {
+std::shared_ptr<types::TableData> Base::get(const std::string& tablename, int page, int limit) {
     std::vector args = {tablename, std::to_string(page)};
-    return std::dynamic_pointer_cast<types::TableData>(this->execute("get", {}, args));
+    return std::dynamic_pointer_cast<types::TableData>(this->execute("get", {{"limit", std::to_string(limit)}}, args));
 };
 
 std::shared_ptr<types::TableSchema> Base::createTable(const types::TableSchema& data) {

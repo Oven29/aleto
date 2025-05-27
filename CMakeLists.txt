@@ -12,6 +12,7 @@ set(HEADERS
     src/App.hpp
     src/ui/MainFrame.hpp
     src/ui/MainFrame.hpp
+    src/core/config.hpp
 )
 
 add_subdirectory(libs/wxWidgets-3.2.8)

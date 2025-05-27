@@ -22,7 +22,7 @@ class Base {
     virtual std::unordered_map<std::string, std::string> getDefaultParams() = 0;
 
     std::shared_ptr<types::SchemaListData> connect();
-    std::shared_ptr<types::TableData> get(const std::string& tablename, int page = 1);
+    std::shared_ptr<types::TableData> get(const std::string& tablename, int page = 1, int limit = 100);
     std::shared_ptr<types::TableSchema> createTable(const types::TableSchema& data);
     std::shared_ptr<types::TableSchema> dropTable(const std::string& tablename);
     std::shared_ptr<types::TableSchema> alterTable(const types::TableSchema& data);
