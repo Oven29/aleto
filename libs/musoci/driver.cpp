@@ -113,10 +113,12 @@ types::IDataPtr Base::execute(const std::string& command, const std::unordered_m
         cmd << " " << escapeAndWrap(arg);
     }
 
+    std::cout << cmd.str() << std::endl;
     std::string resp = execWithOutput(cmd.str().c_str());
+    std::cout << resp << std::endl;
     types::Answer res = types::Answer::from_json(json::parse(resp));
     if (!res.ok) {
-        throw std::runtime_error(res.error_message.value());
+        throw std::runtime_error(res.error_message);
     }
     return res.data;
 };
