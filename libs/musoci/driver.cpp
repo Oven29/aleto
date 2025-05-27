@@ -67,7 +67,7 @@ std::string getExecutablePath(const std::string& relative = "") {
         return dir + "/" + relative;
 }
 
-std::filesystem::path getDriverPath() {
+std::string getDriverPath() {
     return getExecutablePath(SQLDB_DRIVER_RELATIVE_PATH);
 };
 
@@ -101,20 +101,19 @@ types::IDataPtr Base::execute(const std::string& command, const std::unordered_m
         namedArgs[key] = value;
     }
 
-    std::ostringstream cmd;
-    cmd << "\"" << getDriverPath() << "\"";
+    std::string cmd = "\"" + getDriverPath() + "\"";
 
     for (const auto& [key, value] : namedArgs) {
-        cmd << " --" << key << "=" << escapeAndWrap(value);
+        cmd += " --" + key + "=" + escapeAndWrap(value);
     }
 
-    cmd << " " << command;
+    cmd += " " + command;
     for (const auto& arg : args) {
-        cmd << " " << escapeAndWrap(arg);
+        cmd += " " + escapeAndWrap(arg);
     }
 
-    std::cout << cmd.str() << std::endl;
-    std::string resp = execWithOutput(cmd.str().c_str());
+    std::cout << cmd << std::endl;
+    std::string resp = execWithOutput(cmd.c_str());
     std::cout << resp << std::endl;
     types::Answer res = types::Answer::from_json(json::parse(resp));
     if (!res.ok) {
