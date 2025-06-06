@@ -6,13 +6,13 @@ project(${project})
 set(CMAKE_CXX_STANDARD 17)
 
 set(${project}_SOURCES
-    driver.cpp
+    sqlite.cpp
 )
 
 set(${project}_HEADERS
-    driver.hpp
     types.hpp
-    json.hpp
+    base.hpp
+    sqlite.hpp
 )
 
 set(${project}_SOURCE_LIST
@@ -24,5 +24,7 @@ add_library(${project}
     STATIC
     ${${project}_SOURCE_LIST}
 )
+
+target_sources(musoci PRIVATE ../sqlite3/sqlite3.c)
 
 set_target_properties(${project} PROPERTIES LINKER_LANGUAGE CXX)
