@@ -6,22 +6,24 @@
 #include <stdexcept>
 #include <vector>
 
-#include "../../libs/musoci/driver.hpp"
+#include "../../libs/musoci/postgresql.hpp"
+#include "../../libs/musoci/sqlite.hpp"
 #include "../core/config.hpp"
 
 class MainFrame : public wxFrame {
  public:
-    MainFrame(std::unique_ptr<musoci::base::Base> _db)
-        : wxFrame(nullptr, wxID_ANY, wxT("aleto"), wxDefaultPosition, wxSize(config::WIDTH, config::HEIGHT), wxDEFAULT_FRAME_STYLE & ~(wxRESIZE_BORDER | wxMAXIMIZE_BOX)),
+    MainFrame(std::unique_ptr<base::Database> _db)
+        : wxFrame(nullptr, wxID_ANY, wxT("aleto"), wxDefaultPosition, wxSize(config::WIDTH, config::HEIGHT),
+                  wxDEFAULT_FRAME_STYLE & ~(wxRESIZE_BORDER | wxMAXIMIZE_BOX)),
           db(std::move(_db)) {
-        std::shared_ptr<types::SchemaListData> schemas{};
+        std::vector<types::TableSchema> schemas{};
         try {
-            schemas = db->connect();
+            schemas = db->getTables();
         } catch (const std::exception& e) {
             wxMessageBox(wxString::FromUTF8(e.what()), wxT("Подключение"), wxOK | wxICON_WARNING);
         }
 
-        if (schemas->items.size() == 0) {
+        if (schemas.size() == 0) {
             wxMessageBox(wxT("База данных пуста"), wxT("Подключение"), wxOK | wxICON_WARNING);
         }
 
@@ -31,9 +33,9 @@ class MainFrame : public wxFrame {
 
         tableList = new wxListBox(panel, wxID_ANY);
         lastPages = std::map<std::string, int>();
-        for (int i = 0; i < schemas->items.size(); i++) {
-            tableList->Append(wxString::FromUTF8(schemas->items[i].title));
-            lastPages[schemas->items[i].title] = 1000000;
+        for (const auto& schema : schemas) {
+            tableList->Append(wxString::FromUTF8(schema.title));
+            lastPages[schema.title] = 1000000;
         }
         tableList->Bind(wxEVT_LISTBOX, &MainFrame::onTableSelected, this);
         mainSizer->Add(tableList, 1, wxEXPAND | wxALL, 5);
@@ -53,7 +55,7 @@ class MainFrame : public wxFrame {
         grid = new wxGrid(rightPanel, wxID_ANY);
         grid->CreateGrid(0, 0);
         // grid->SetRowLabelSize(0);
-        grid->EnableEditing(false);
+        grid->EnableEditing(true);
         grid->Bind(wxEVT_GRID_CELL_CHANGED, &MainFrame::onCellChanged, this);
         rightSizer->Add(grid, 10, wxEXPAND | wxALL, 0);
 
@@ -80,13 +82,13 @@ class MainFrame : public wxFrame {
         // Присваиваем сайзер панели
         rightPanel->SetSizer(rightSizer);
 
-        if (schemas->items.size() != 0) {
-            loadPage(schemas->items[0].title);
+        if (schemas.size() != 0) {
+            loadPage(schemas[0].title);
         }
     }
 
  private:
-    std::unique_ptr<musoci::base::Base> db;
+    std::unique_ptr<base::Database> db;
 
     std::string currentTable;
     int currentPage;
@@ -133,13 +135,13 @@ class MainFrame : public wxFrame {
             return;
         }
 
-        std::shared_ptr<types::TableData> data{};
+        types::TableData data{};
         try {
-            data = db->get(tableName, page, config::ROWS_ON_PAGE);
-            if (data->data.size() < config::ROWS_ON_PAGE && page < lastPages[tableName]) {
+            data = db->select(tableName, (page - 1) * config::ROWS_ON_PAGE, config::ROWS_ON_PAGE);
+            if (data.data.size() < config::ROWS_ON_PAGE && page < lastPages[tableName]) {
                 lastPages[tableName] = page;
             }
-            if (data->data.size() == 0) {
+            if (data.data.size() == 0) {
                 throw std::runtime_error("Пустая страница");
             }
         } catch (const std::exception& e) {
@@ -158,14 +160,14 @@ class MainFrame : public wxFrame {
         if (grid->GetNumberCols() != 0) {
             grid->DeleteCols(0, grid->GetNumberCols());
         }
-        grid->AppendCols(data->columns.size());
-        grid->AppendRows(data->data.size());
-        for (int i = 0; i < data->columns.size(); i++) {
-            grid->SetColLabelValue(i, wxString::FromUTF8(data->columns[i]->name));
+        grid->AppendCols(data.columns.size());
+        grid->AppendRows(data.data.size());
+        for (int i = 0; i < data.columns.size(); i++) {
+            grid->SetColLabelValue(i, wxString::FromUTF8(data.columns[i].name));
         }
-        for (int i = 0; i < data->data.size(); i++) {
-            for (int j = 0; j < data->data[i].size(); j++) {
-                grid->SetCellValue(i, j, wxString::FromUTF8(data->data[i][j]));
+        for (int i = 0; i < data.data.size(); i++) {
+            for (int j = 0; j < data.data[i].size(); j++) {
+                grid->SetCellValue(i, j, wxString::FromUTF8(data.data[i][j]));
             }
         }
     }
