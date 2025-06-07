@@ -7,12 +7,14 @@ set(CMAKE_CXX_STANDARD 17)
 
 set(${project}_SOURCES
     sqlite.cpp
+    postgresql.cpp
 )
 
 set(${project}_HEADERS
     types.hpp
     base.hpp
     sqlite.hpp
+    postgresql.hpp
 )
 
 set(${project}_SOURCE_LIST

@@ -23,7 +23,7 @@ add_subdirectory(libs/json)
 add_executable(${CMAKE_PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -std=c++17)
-target_link_libraries(${CMAKE_PROJECT_NAME} wx::net wx::core wx::base sqlite3 musoci json)
+target_link_libraries(${CMAKE_PROJECT_NAME} wx::net wx::core wx::base sqlite3 pqxx pq musoci json)
 
 if(ENABLE_DEBUG)
     target_compile_options(${CMAKE_PROJECT_NAME} PRIVATE -g)
