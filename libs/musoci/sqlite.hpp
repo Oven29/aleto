@@ -21,6 +21,7 @@ class SQLiteDB : public base::Database {
     bool editRow(const std::string& table, const std::pair<std::string, std::string>& where,
                  const std::vector<std::pair<std::string, std::string>>& values) override;
     bool addRow(const std::string& table, const std::vector<std::pair<std::string, std::string>>& values) override;
+    bool removeRow(const std::string& table, const std::pair<std::string, std::string>& where) override;
     types::TableData search(const std::string& table, const std::string& column, const std::string& pattern, int limit) override;
     bool createTable(const types::TableSchema& schema) override;
     bool dropTable(const std::string& tableName) override;

@@ -15,6 +15,7 @@ class Database {
     virtual bool editRow(const std::string& table, const std::pair<std::string, std::string>& where,
                          const std::vector<std::pair<std::string, std::string>>& values) = 0;
     virtual bool addRow(const std::string& table, const std::vector<std::pair<std::string, std::string>>& values) = 0;
+    virtual bool removeRow(const std::string& table, const std::pair<std::string, std::string>& where) = 0;
     virtual types::TableData search(const std::string& table, const std::string& column, const std::string& pattern, int limit) = 0;
     virtual bool createTable(const types::TableSchema& schema) = 0;
     virtual bool dropTable(const std::string& tableName) = 0;

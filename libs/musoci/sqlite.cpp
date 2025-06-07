@@ -106,17 +106,38 @@ bool SQLiteDB::editRow(const std::string& table, const std::pair<std::string, st
         if (i + 1 < values.size())
             query << ", ";
     }
-    query << " WHERE " << where.first << " = " << where.second << ";";
+    query << " WHERE " << where.first << " = ?;";
 
     sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, query.str().c_str(), -1, &stmt, nullptr) != SQLITE_OK)
+    if (sqlite3_prepare_v2(db, query.str().c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
         return false;
+    }
 
     for (size_t i = 0; i < values.size(); ++i) {
         sqlite3_bind_text(stmt, static_cast<int>(i + 1), values[i].second.c_str(), -1, SQLITE_STATIC);
     }
 
+    sqlite3_bind_text(stmt, static_cast<int>(values.size() + 1), where.second.c_str(), -1, SQLITE_STATIC);
+
     bool success = sqlite3_step(stmt) == SQLITE_DONE;
+    sqlite3_finalize(stmt);
+    return success;
+}
+
+bool SQLiteDB::removeRow(const std::string& table, const std::pair<std::string, std::string>& where) {
+    std::string sql = "DELETE FROM " + table + " WHERE " + where.first + " = ?";
+
+    sqlite3_stmt* stmt = nullptr;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+        return false;
+    }
+
+    if (sqlite3_bind_text(stmt, 1, where.second.c_str(), -1, SQLITE_STATIC) != SQLITE_OK) {
+        sqlite3_finalize(stmt);
+        return false;
+    }
+
+    bool success = (sqlite3_step(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);
     return success;
 }
