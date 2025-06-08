@@ -57,7 +57,8 @@ class MainFrame : public wxFrame {
         // grid->SetRowLabelSize(0);
         grid->EnableEditing(true);
         grid->Bind(wxEVT_GRID_CELL_CHANGED, &MainFrame::onCellChanged, this);
-        rightSizer->Add(grid, 10, wxEXPAND | wxALL, 0);
+        rightSizer->Add(grid, 1, wxEXPAND | wxALL, 0);
+        grid->Bind(wxEVT_GRID_LABEL_LEFT_CLICK, &MainFrame::onColumnHeaderClick, this);
 
         // Панель и сайзер для навигации
         wxBoxSizer* navigationSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -77,7 +78,7 @@ class MainFrame : public wxFrame {
         navigationSizer->Add(nextButton, 3, wxEXPAND | wxALL, 10);
         navigationPanel->SetSizer(navigationSizer);
 
-        rightSizer->Add(navigationPanel, 1, wxEXPAND | wxALL, 5);
+        rightSizer->Add(navigationPanel, 0, wxEXPAND | wxALL, 5);
 
         // Присваиваем сайзер панели
         rightPanel->SetSizer(rightSizer);
@@ -94,6 +95,7 @@ class MainFrame : public wxFrame {
     int currentPage;
     std::map<std::string, int> lastPages;
     std::map<std::tuple<int, int>, std::string> editedCells{};
+    std::map<int, bool> sortAscending{};
 
     wxGrid* grid;
     wxListBox* tableList;
@@ -101,7 +103,6 @@ class MainFrame : public wxFrame {
 
     void onTableSelected(wxCommandEvent& event) {
         std::string tableName = tableList->GetStringSelection().ToStdString();
-        std::cout << tableName << std::endl;
         loadPage(tableName);
     }
 
@@ -168,6 +169,61 @@ class MainFrame : public wxFrame {
         for (int i = 0; i < data.data.size(); i++) {
             for (int j = 0; j < data.data[i].size(); j++) {
                 grid->SetCellValue(i, j, wxString::FromUTF8(data.data[i][j]));
+            }
+        }
+    }
+
+    void onColumnHeaderClick(wxGridEvent& event) {
+        int col = event.GetCol();
+        if (col < 0) {
+            return;
+        }
+        // Сохраняем выбранную колонку и направление сортировки
+        bool ascending = sortAscending[col] = !sortAscending[col];  // true = по возрастанию
+
+        const char* upArrow = " >";
+        const char* downArrow = " <";
+
+        // Обновление заголовков
+        for (int i = 0; i < grid->GetNumberCols(); ++i) {
+            wxString label = grid->GetColLabelValue(i);
+
+            // Удаляем символы сортировки
+            label.Replace(upArrow, "");
+            label.Replace(downArrow, "");
+
+            // Добавляем значок только к текущей колонке
+            if (i == col) {
+                label += ascending ? upArrow : downArrow;
+            }
+
+            grid->SetColLabelValue(i, wxString::FromUTF8(label));
+        }
+        grid->ForceRefresh();
+
+        int rows = grid->GetNumberRows();
+        std::vector<std::pair<wxString, int>> data;
+
+        for (int i = 0; i < rows; ++i) {
+            data.emplace_back(grid->GetCellValue(i, col), i);  // значение, индекс
+        }
+
+        std::sort(data.begin(), data.end(), [ascending](const auto& a, const auto& b) { return ascending ? a.first < b.first : a.first > b.first; });
+
+        // Копируем строки во временное хранилище
+        std::vector<std::vector<wxString>> sortedRows;
+        for (const auto& [_, index] : data) {
+            std::vector<wxString> row;
+            for (int c = 0; c < grid->GetNumberCols(); ++c) {
+                row.push_back(grid->GetCellValue(index, c));
+            }
+            sortedRows.push_back(std::move(row));
+        }
+
+        // Обновляем строки в гриде
+        for (int i = 0; i < rows; ++i) {
+            for (int c = 0; c < grid->GetNumberCols(); ++c) {
+                grid->SetCellValue(i, c, sortedRows[i][c]);
             }
         }
     }
